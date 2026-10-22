@@ -1,0 +1,23 @@
+.preview-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 9px 11px;
+  border: 1px solid color-mix(in srgb, var(--orange) 35%, var(--line));
+  border-radius: 8px;
+  color: var(--soft);
+  background: color-mix(in srgb, var(--orange) 7%, var(--panel));
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.preview-notice svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--orange);
+}
+
+.preview-notice strong {
+  color: var(--orange);
+}

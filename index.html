@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#10120f" />
+    <meta name="description" content="FitQuest — build strength, one quest at a time." />
+    <title>FitQuest — Your fitness, in motion</title>
+  </head>
+  <body>
+    <div id="root">
+      <main class="launch-help">
+        <div class="launch-mark">FQ</div>
+        <p class="launch-eyebrow">FITQUEST LOCAL APP</p>
+        <h1>Start FitQuest from the project folder</h1>
+        <p>This app needs its local web server. Opening this HTML file directly will show this guide instead of a blank page.</p>
+        <code>npm run dev:all</code>
+        <p class="launch-footnote">Then open <strong>http://localhost:5173</strong> in your browser.</p>
+      </main>
+    </div>
+    <style>
+      .launch-help{box-sizing:border-box;max-width:540px;margin:12vh auto;padding:36px;border:1px solid #34392f;border-radius:18px;background:#191c17;color:#f0f2ec;font:14px/1.6 system-ui,sans-serif;box-shadow:0 24px 80px #0004}
+      body{margin:0;min-height:100vh;background:#10120f;color:#f0f2ec}
+      .launch-mark{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#c7f36a;color:#1b2510;font-weight:800}
+      .launch-eyebrow{margin:24px 0 4px;color:#c7f36a;font-size:10px;font-weight:700;letter-spacing:1.4px}
+      .launch-help h1{margin:0 0 10px;font-size:26px;line-height:1.2}
+      .launch-help p{color:#adb3a6}
+      .launch-help code{display:inline-block;margin-top:8px;padding:9px 12px;border-radius:8px;background:#252a21;color:#c7f36a}
+      .launch-help .launch-footnote{font-size:12px}
+      .launch-footnote strong{color:#f0f2ec}
+      @media(max-width:600px){.launch-help{margin:8vh 16px;padding:26px}.launch-help h1{font-size:22px}}
+    </style>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
