@@ -59,7 +59,7 @@ export const requireAuth: RequestHandler = async (request, response, next) => {
     }
 
     const user = await User.findById(session.userId).select('email displayName emailVerified onboardingComplete').lean()
-    if (!user || !user.emailVerified) {
+    if (!user) {
       response.status(401).json({ error: { code: 'AUTH_REQUIRED', message: 'Please sign in to continue.' } })
       return
     }

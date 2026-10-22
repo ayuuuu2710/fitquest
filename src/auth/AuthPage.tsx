@@ -23,7 +23,7 @@ export function AuthPage() {
     setBusy(true); setError(''); setSuccess('')
     try {
       if (mode === 'login') await signIn(email, password)
-      else if (mode === 'register') setSuccess(await register(email, password, displayName))
+      else if (mode === 'register') await register(email, password, displayName)
       else if (mode === 'forgot') setSuccess(await requestPasswordReset(email))
       else if (mode === 'verify') setSuccess(await verifyEmail(token))
       else if (mode === 'reset') { setSuccess(await resetPassword(token, password)); setMode('login'); window.history.replaceState({}, '', '/') }
@@ -35,7 +35,7 @@ export function AuthPage() {
   }
 
   const heading = mode === 'register' ? 'Make progress your own.' : mode === 'forgot' ? 'Reset your password.' : mode === 'verify' ? 'Verify your email.' : mode === 'reset' ? 'Choose a new password.' : 'Your next chapter starts here.'
-  const subtitle = mode === 'register' ? 'Create an account to start your FitQuest.' : mode === 'forgot' ? 'Enter your email and we’ll send a reset link if an account matches.' : mode === 'verify' ? 'Confirm the address you used to create your FitQuest account.' : mode === 'reset' ? 'Choose a new password to get back to your account.' : 'A steady routine. A stronger you. One quest at a time.'
+  const subtitle = mode === 'register' ? 'Create an account to start your FitQuest. No email or phone verification required.' : mode === 'forgot' ? 'Password recovery by email will be available once email delivery is configured.' : mode === 'verify' ? 'Email verification is not required for FitQuest accounts.' : mode === 'reset' ? 'Choose a new password to get back to your account.' : 'A steady routine. A stronger you. One quest at a time.'
 
   return <main className="auth-page">
     <section className="auth-story">
@@ -50,7 +50,7 @@ export function AuthPage() {
           {mode === 'register' && <label>Display name<input autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="How should we call you?" required maxLength={60} /></label>}
           {(mode === 'login' || mode === 'register' || mode === 'forgot') && <label>Email address<span className="auth-input"><Mail size={16} /><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required maxLength={254} /></span></label>}
           {(mode === 'login' || mode === 'register' || mode === 'reset') && <label>{mode === 'reset' ? 'New password' : 'Password'}<span className="auth-input"><LockKeyhole size={16} /><input type={showPassword ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 12 characters" required minLength={12} maxLength={128} /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></span></label>}
-          {mode === 'login' && <button type="button" className="auth-inline-link forgot-link" onClick={() => { setMode('forgot'); setError(''); setSuccess('') }}>Forgot password?</button>}
+          {mode === 'login' && <p className="auth-recovery-note">Forgot password? Email recovery isn’t set up yet, so keep your password somewhere safe.</p>}
           {error && <div className="form-message error" role="alert">{error}</div>}
           {success && <div className="form-message success" role="status"><CheckCircle2 size={16} />{success}</div>}
           <button className="button button-primary auth-submit" type="submit" disabled={busy || ((mode === 'verify' || mode === 'reset') && !token)}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : mode === 'register' ? 'Create account' : mode === 'forgot' ? 'Send reset link' : mode === 'verify' ? 'Verify email' : 'Update password'}<ArrowRight size={16} /></button>

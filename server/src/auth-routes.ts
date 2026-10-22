@@ -107,28 +107,27 @@ export function createAuthRouter() {
     const parsed = registrationSchema.safeParse(request.body)
     if (!parsed.success) return validationError(response)
     if (mongoose.connection.readyState !== 1) return databaseUnavailable(response)
-    if (!config.resendApiKey || !config.emailFrom) return emailUnavailable(response)
-
     const email = parsed.data.email.toLowerCase()
-    let user = await User.findOne({ email })
-    if (!user) {
-      const passwordHash = await hashPassword(parsed.data.password)
-      try {
-        user = await User.create({ email, passwordHash, displayName: parsed.data.displayName })
-      } catch (error) {
-        if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
-          return response.status(202).json({ message: 'If the address can be registered, a verification link will be sent.' })
-        }
-        throw error
-      }
+    if (await User.exists({ email })) {
+      return response.status(409).json({ error: { code: 'ACCOUNT_EXISTS', message: 'An account with this email already exists. Sign in instead.' } })
     }
 
-    if (user.emailVerified) return response.status(202).json({ message: 'If the address can be registered, a verification link will be sent.' })
+    const passwordHash = await hashPassword(parsed.data.password)
+    let user
+    try {
+      user = await User.create({ email, passwordHash, displayName: parsed.data.displayName, emailVerified: true })
+    } catch (error) {
+      if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
+        return response.status(409).json({ error: { code: 'ACCOUNT_EXISTS', message: 'An account with this email already exists. Sign in instead.' } })
+      }
+      throw error
+    }
 
-    const token = await issueOneTimeToken(user._id, 'verify-email', 24)
-    const sent = await sendTransactionalEmail(verificationEmail(email, token.value, token.eventId))
-    if (!sent) return emailUnavailable(response)
-    response.status(202).json({ message: 'If the address can be registered, a verification link will be sent.' })
+    const token = createOpaqueToken()
+    const expiresAt = new Date(Date.now() + config.sessionTtlDays * 24 * 60 * 60 * 1000)
+    await Session.create({ userId: user._id, tokenHash: token.hash, expiresAt })
+    setSessionCookie(response, token.value)
+    response.status(201).json({ user: publicUser(user) })
   }))
 
   router.post('/verify-email', authLimit, asyncRoute(async (request, response) => {
@@ -163,8 +162,13 @@ export function createAuthRouter() {
 
     const user = await User.findOne({ email: parsed.data.email.toLowerCase() }).select('+passwordHash')
     const valid = user ? await verifyPassword(parsed.data.password, user.passwordHash) : false
-    if (!user || !valid || !user.emailVerified) {
-      return response.status(401).json({ error: { code: 'INVALID_CREDENTIALS', message: 'Unable to sign in. Check your details and verify your email.' } })
+    if (!user || !valid) {
+      return response.status(401).json({ error: { code: 'INVALID_CREDENTIALS', message: 'Unable to sign in. Check your email and password.' } })
+    }
+
+    if (!user.emailVerified) {
+      await User.updateOne({ _id: user._id }, { $set: { emailVerified: true } })
+      user.emailVerified = true
     }
 
     const token = createOpaqueToken()

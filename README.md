@@ -4,7 +4,7 @@ FitQuest is a fitness companion for building steady habits through workouts, nut
 
 ## Current phase
 
-Phase 1 provides the React + TypeScript + Vite app shell and Express + TypeScript API foundation. Phase 2 adds server-side MongoDB sessions, password hashing, CSRF protection, rate-limited sign-in and registration, email verification and password-reset flows, and a persisted onboarding/profile API. Phase 3 adds user-scoped manual workout records with exercise, set, rep, and duration fields. The dashboard and nutrition diary still contain preview content; nutrition entries are not yet saved. Account and workout persistence require MongoDB Atlas, while account email flows also require Resend. Those flows have not yet been verified against live services.
+Phase 1 provides the React + TypeScript + Vite app shell and Express + TypeScript API foundation. Phase 2 adds server-side MongoDB sessions, password hashing, CSRF protection, rate-limited sign-in and registration, and a persisted onboarding/profile API. Signup does not require email or phone verification; an email address is used as the account's login name. Password reset by email still requires Resend configuration. Phase 3 adds user-scoped manual workout records with exercise, set, rep, and duration fields. The dashboard and nutrition diary still contain preview content; nutrition entries are not yet saved. Account and workout persistence require MongoDB Atlas.
 
 No automatic or camera-based rep counting is part of the product.
 
@@ -12,7 +12,7 @@ No automatic or camera-based rep counting is part of the product.
 
 1. Install Node.js 20 or newer.
 2. Run `npm install`.
-3. Copy `.env.example` to `.env` and set `MONGODB_URI`, `RESEND_API_KEY`, and `EMAIL_FROM` for account flows. `CLIENT_ORIGIN` and `APP_BASE_URL` must match the frontend origin. The API can start without MongoDB, but authentication and readiness will remain unavailable.
+3. Copy `.env.example` to `.env` and set `MONGODB_URI` for accounts and data. `CLIENT_ORIGIN` and `APP_BASE_URL` must match the frontend origin. `RESEND_API_KEY` and `EMAIL_FROM` are optional and only needed for password recovery by email. The API can start without MongoDB, but authentication and readiness will remain unavailable.
 4. Run `npm run dev:all` and open `http://localhost:5173`.
 
 Do not open `index.html` directly from the file system. The app needs its Vite server; if opened directly, the HTML now shows a launch guide instead of a blank page.
@@ -30,7 +30,7 @@ Authentication uses an opaque HttpOnly cookie backed by revocable MongoDB sessio
 - MongoDB Atlas — planned application data store
 - OpenAI API — backend-only coach, workout generation, and food-photo analysis
 - Cloudinary — planned user media storage
-- Resend — planned verification and account email delivery
+- Resend — optional password recovery email delivery
 - Socket.IO — planned community chat and live updates
 - Netlify — planned frontend hosting
 - Render — planned API hosting
@@ -39,4 +39,4 @@ Open decisions still to resolve before related features ship: nutrition data sou
 
 ## Hosting setup
 
-`netlify.toml` configures the Vite build and SPA fallback. Set `VITE_API_BASE_URL` in Netlify to the deployed API origin. `render.yaml` defines the Express API service and asks for production-only values (`CLIENT_ORIGIN`, `APP_BASE_URL`, `MONGODB_URI`, `RESEND_API_KEY`, and `EMAIL_FROM`) during setup. Use the exact Netlify origin for both frontend URL settings. Never commit those values.
+`netlify.toml` configures the Vite build and SPA fallback. Set `VITE_API_BASE_URL` in Netlify to the deployed API origin. `render.yaml` defines the Express API service and asks for production-only values (`CLIENT_ORIGIN`, `APP_BASE_URL`, and `MONGODB_URI`) during setup. Configure `RESEND_API_KEY` and `EMAIL_FROM` only if email password recovery is enabled. Use the exact Netlify origin for both frontend URL settings. Never commit those values.

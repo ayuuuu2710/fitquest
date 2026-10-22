@@ -15,7 +15,7 @@ const profileSchema = new Schema({
 const userSchema = new Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
   passwordHash: { type: String, required: true, select: false },
-  emailVerified: { type: Boolean, default: false },
+  emailVerified: { type: Boolean, default: true },
   displayName: { type: String, required: true, trim: true, maxlength: 60 },
   onboardingComplete: { type: Boolean, default: false },
   profile: { type: profileSchema, default: () => ({}) },
