@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { config } from './config.js'
 import { createAuthRouter } from './auth-routes.js'
 import { createWorkoutRouter } from './workout-routes.js'
+import { createMealRouter } from './meal-routes.js'
 
 export function createApp() {
   const app = express()
@@ -23,6 +24,7 @@ export function createApp() {
   app.use(express.json({ limit: '1mb' }))
   app.use('/api/v1/auth', createAuthRouter())
   app.use('/api/v1/workouts', createWorkoutRouter())
+  app.use('/api/v1/meals', createMealRouter())
 
   app.get('/api/v1/health/live', (_request, response) => {
     response.status(200).json({ status: 'ok', requestId: response.locals.requestId })
@@ -55,3 +57,4 @@ export function createApp() {
 
   return app
 }
+

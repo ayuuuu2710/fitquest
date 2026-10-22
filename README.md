@@ -4,7 +4,7 @@ FitQuest is a fitness companion for building steady habits through workouts, nut
 
 ## Current phase
 
-Phase 1 provides the React + TypeScript + Vite app shell and Express + TypeScript API foundation. Phase 2 adds server-side MongoDB sessions, password hashing, CSRF protection, rate-limited sign-in and registration, and a persisted onboarding/profile API. Signup does not require email or phone verification; an email address is used as the account's login name. Password reset by email still requires Resend configuration. Phase 3 adds user-scoped manual workout records with exercise, set, rep, and duration fields. The dashboard and nutrition diary still contain preview content; nutrition entries are not yet saved. Account and workout persistence require MongoDB Atlas.
+The application uses server-side MongoDB sessions, password hashing, CSRF protection, rate-limited sign-in and registration, and a persisted onboarding/profile API. Signup does not require email or phone verification; an email address is used as the account's login name. Password reset by email still requires Resend configuration. Manual workouts and nutrition entries are stored per account. Dashboard metrics, the activity chart, and macro breakdown are calculated from that account's records; a new account with no records starts at zero. Nutrition estimates come from the built-in food list and are not medical guidance.
 
 No automatic or camera-based rep counting is part of the product.
 
@@ -27,7 +27,7 @@ Authentication uses an opaque HttpOnly cookie backed by revocable MongoDB sessio
 
 - `src/` — React + TypeScript frontend
 - `server/` — Node.js + Express + TypeScript API foundation
-- MongoDB Atlas — planned application data store
+- MongoDB Atlas — account, workout, and nutrition data store
 - OpenAI API — backend-only coach, workout generation, and food-photo analysis
 - Cloudinary — planned user media storage
 - Resend — optional password recovery email delivery
@@ -40,3 +40,4 @@ Open decisions still to resolve before related features ship: nutrition data sou
 ## Hosting setup
 
 `netlify.toml` configures the Vite build and SPA fallback. Set `VITE_API_BASE_URL` in Netlify to the deployed API origin. `render.yaml` defines the Express API service and asks for production-only values (`CLIENT_ORIGIN`, `APP_BASE_URL`, and `MONGODB_URI`) during setup. Configure `RESEND_API_KEY` and `EMAIL_FROM` only if email password recovery is enabled. Use the exact Netlify origin for both frontend URL settings. Never commit those values.
+
