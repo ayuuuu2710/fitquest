@@ -14,7 +14,7 @@ type AuthStatus = 'loading' | 'signed-out' | 'signed-in' | 'unavailable'
 type AuthContextValue = {
   status: AuthStatus; user: AuthUser | null; error: string; retry: () => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, displayName: string) => Promise<string>
+  register: (email: string, password: string, displayName: string) => Promise<void>
   verifyEmail: (token: string) => Promise<string>
   requestPasswordReset: (email: string) => Promise<string>
   resetPassword: (token: string, password: string) => Promise<string>
@@ -46,7 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await apiRequest<{ user: AuthUser }>('/api/v1/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
     setUser(result.user); setStatus('signed-in'); setError('')
   }
-  const register: AuthContextValue['register'] = async (email, password, displayName) => (await apiRequest<{ message: string }>('/api/v1/auth/register', { method: 'POST', body: JSON.stringify({ email, password, displayName }) })).message
+  const register: AuthContextValue['register'] = async (email, password, displayName) => {
+    const result = await apiRequest<{ user: AuthUser }>('/api/v1/auth/register', { method: 'POST', body: JSON.stringify({ email, password, displayName }) })
+    setUser(result.user); setStatus('signed-in'); setError('')
+  }
   const verifyEmail: AuthContextValue['verifyEmail'] = async (token) => (await apiRequest<{ message: string }>('/api/v1/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) })).message
   const requestPasswordReset: AuthContextValue['requestPasswordReset'] = async (email) => (await apiRequest<{ message: string }>('/api/v1/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) })).message
   const resetPassword: AuthContextValue['resetPassword'] = async (token, password) => (await apiRequest<{ message: string }>('/api/v1/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) })).message
