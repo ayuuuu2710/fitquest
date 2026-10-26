@@ -8,6 +8,8 @@ The application uses server-side MongoDB sessions, password hashing, CSRF protec
 
 No automatic or camera-based rep counting is part of the product.
 
+Meal entries are selected from the authenticated API's starter food catalog. The browser submits only a food ID, meal type, serving count, and date; the API selects the serving label and calculates the saved calories and macros. The catalog is intentionally small, and its nutrition values are estimates rather than verified or exhaustive data. Existing meal records keep their stored nutrition snapshots and remain readable.
+
 ## Run locally
 
 1. Install Node.js 20 or newer.
