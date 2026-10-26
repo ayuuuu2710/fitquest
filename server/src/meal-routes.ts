@@ -3,16 +3,12 @@ import mongoose from 'mongoose'
 import { z } from 'zod'
 import { requireAuth, requireCsrf } from './auth-middleware.js'
 import { MealLog } from './models/meal-log.js'
+import { calculateFoodNutrition, foodCatalog, getFoodById } from './data/food-catalog.js'
 
 const mealInput = z.object({
-  foodName: z.string().trim().min(1).max(100),
+  foodId: z.string().trim().min(1).max(80),
   mealType: z.enum(['Breakfast', 'Lunch', 'Dinner', 'Snack']),
   servings: z.number().min(0.25).max(20),
-  servingLabel: z.string().trim().min(1).max(40),
-  calories: z.number().min(0).max(10000),
-  proteinGrams: z.number().min(0).max(1000),
-  carbsGrams: z.number().min(0).max(1000),
-  fatGrams: z.number().min(0).max(1000),
   date: z.string().datetime({ offset: true }),
 }).strict()
 
@@ -23,6 +19,10 @@ const asyncRoute: (handler: RequestHandler) => RequestHandler = (handler) => (re
 export function createMealRouter() {
   const router = Router()
   router.use(requireCsrf, requireAuth)
+
+  router.get('/catalog', (_request, response) => {
+    response.status(200).json({ foods: foodCatalog })
+  })
 
   router.get('/', asyncRoute(async (request, response) => {
     const limit = Math.min(Number(request.query.limit) || 100, 200)
@@ -36,7 +36,23 @@ export function createMealRouter() {
       response.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Check the food and serving details and try again.' } })
       return
     }
-    const meal = await MealLog.create({ ...parsed.data, date: new Date(parsed.data.date), userId: request.authUser?.id })
+    const food = getFoodById(parsed.data.foodId)
+    if (!food) {
+      response.status(400).json({ error: { code: 'FOOD_NOT_FOUND', message: 'Choose a food from the FitQuest catalog and try again.' } })
+      return
+    }
+    const nutrition = calculateFoodNutrition(food, parsed.data.servings)
+    const meal = await MealLog.create({
+      foodId: food.id,
+      foodName: food.name,
+      mealType: parsed.data.mealType,
+      servings: parsed.data.servings,
+      servingLabel: food.serving,
+      ...nutrition,
+      nutritionSource: food.source,
+      date: new Date(parsed.data.date),
+      userId: request.authUser?.id,
+    })
     response.status(201).json({ meal })
   }))
 

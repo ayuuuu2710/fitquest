@@ -3,12 +3,13 @@ import { Activity, Apple, ArrowDownRight, ArrowRight, ArrowUpRight, CalendarDays
 import { useAuth } from './auth/AuthContext'
 import { ProfileForm } from './components/ProfileForm'
 import { apiRequest } from './lib/api'
-import { exerciseCatalog, foodCatalog, type FoodItem } from './data/catalog'
+import { exerciseCatalog } from './data/catalog'
 
 type View = 'Overview' | 'Workouts' | 'Nutrition' | 'Progress' | 'Community' | 'Settings'
 type Exercise = { name: string; sets: number; reps: number; weightKg: number | null }
 type WorkoutRecord = { _id: string; title: string; date: string; durationMinutes: number; notes: string; exercises: Exercise[] }
 type MealRecord = { _id: string; foodName: string; mealType: 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack'; servings: number; servingLabel: string; calories: number; proteinGrams: number; carbsGrams: number; fatGrams: number; date: string }
+type FoodItem = { id: string; name: string; serving: string; calories: number; proteinGrams: number; carbsGrams: number; fatGrams: number; category: string; source: 'starter-estimate' }
 type Modal = 'workout' | 'meal' | null
 
 const navItems: { label: View; icon: typeof LayoutDashboard }[] = [
@@ -29,6 +30,7 @@ function App() {
   const [notice, setNotice] = useState('')
   const [workouts, setWorkouts] = useState<WorkoutRecord[]>([])
   const [meals, setMeals] = useState<MealRecord[]>([])
+  const [foodCatalog, setFoodCatalog] = useState<FoodItem[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [rangeDays, setRangeDays] = useState<7 | 30>(7)
@@ -44,12 +46,14 @@ function App() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [workoutResult, mealResult] = await Promise.all([
+      const [workoutResult, mealResult, foodResult] = await Promise.all([
         apiRequest<{ workouts: WorkoutRecord[] }>('/api/v1/workouts'),
         apiRequest<{ meals: MealRecord[] }>('/api/v1/meals'),
+        apiRequest<{ foods: FoodItem[] }>('/api/v1/meals/catalog'),
       ])
       setWorkouts(workoutResult.workouts)
       setMeals(mealResult.meals)
+      setFoodCatalog(foodResult.foods)
       setLoadError('')
     } catch (cause) {
       setLoadError(cause instanceof Error ? cause.message : 'Your activity could not be loaded.')
@@ -90,7 +94,7 @@ function App() {
     event.preventDefault()
     if (!selectedFood) { toast('Choose a food from the list first.'); return }
     try {
-      const result = await apiRequest<{ meal: MealRecord }>('/api/v1/meals', { method: 'POST', body: JSON.stringify({ foodName: selectedFood.name, mealType, servings, servingLabel: selectedFood.serving, calories: selectedFood.calories * servings, proteinGrams: selectedFood.proteinGrams * servings, carbsGrams: selectedFood.carbsGrams * servings, fatGrams: selectedFood.fatGrams * servings, date: new Date().toISOString() }) })
+      const result = await apiRequest<{ meal: MealRecord }>('/api/v1/meals', { method: 'POST', body: JSON.stringify({ foodId: selectedFood.id, mealType, servings, date: new Date().toISOString() }) })
       setMeals((items) => [result.meal, ...items])
       setSelectedFood(null); setFoodQuery(''); setServings(1); setModal(null)
       toast('Meal saved. Your nutrition chart is up to date.')
@@ -141,7 +145,7 @@ function App() {
     {notice && <div className="toast" role="status"><Check size={16} /> {notice}</div>}
     {modal && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setModal(null) }}><form className="modal entry-modal" onSubmit={modal === 'workout' ? addWorkout : addMeal}><button className="modal-close" type="button" aria-label="Close" onClick={() => setModal(null)}><X size={19} /></button><span className="modal-icon">{modal === 'workout' ? <Dumbbell size={19} /> : <Apple size={19} />}</span><div className="section-kicker">ADD TO YOUR JOURNEY</div><h2>{modal === 'workout' ? 'Log a workout' : 'Log a meal'}</h2><p>{modal === 'workout' ? 'Choose exercises and record your sets and reps. No automatic rep counting.' : 'Choose a food and serving. Nutrition values are estimates per listed serving.'}</p>
       {modal === 'workout' ? <><label htmlFor="workout-title">Workout name</label><input id="workout-title" value={workoutTitle} onChange={(event) => setWorkoutTitle(event.target.value)} placeholder="e.g. Upper body strength" maxLength={100} required /><label htmlFor="duration">Duration (minutes)</label><input id="duration" type="number" min={1} max={1440} value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))} required /><label htmlFor="exercise-search">Add an exercise</label><div className="catalog-search"><Search size={16} /><input id="exercise-search" value={exerciseQuery} onChange={(event) => setExerciseQuery(event.target.value)} placeholder="Search exercise names" autoComplete="off" /></div><div className="catalog-results">{exerciseCatalog.filter((name) => name.toLowerCase().includes(exerciseQuery.toLowerCase())).slice(0, 8).map((name) => <button type="button" key={name} onClick={() => addExercise(name)}>{name}<Plus size={14} /></button>)}{exerciseQuery.trim().length > 1 && !exerciseCatalog.some((name) => name.toLowerCase() === exerciseQuery.trim().toLowerCase()) && <button type="button" onClick={() => addExercise(exerciseQuery.trim())}>Add “{exerciseQuery.trim()}” as a custom exercise<Plus size={14} /></button>}</div>{exercises.length > 0 && <div className="chosen-exercises"><div className="section-kicker">EXERCISES · SETS AND REPS ARE MANUAL</div>{exercises.map((exercise, index) => <div className="exercise-entry" key={`${exercise.name}-${index}`}><strong>{exercise.name}</strong><label>Sets<input type="number" min={1} max={30} value={exercise.sets} onChange={(event) => setExercises((items) => items.map((item, i) => i === index ? { ...item, sets: Number(event.target.value) } : item))} /></label><label>Reps<input type="number" min={1} max={500} value={exercise.reps} onChange={(event) => setExercises((items) => items.map((item, i) => i === index ? { ...item, reps: Number(event.target.value) } : item))} /></label><label>kg<input type="number" min={0} max={1000} placeholder="—" onChange={(event) => setExercises((items) => items.map((item, i) => i === index ? { ...item, weightKg: event.target.value ? Number(event.target.value) : null } : item))} /></label><button type="button" className="row-delete" aria-label={`Remove ${exercise.name}`} onClick={() => setExercises((items) => items.filter((_, i) => i !== index))}><X size={15} /></button></div>)}</div>}</> : <><label htmlFor="meal-type">Meal</label><select id="meal-type" value={mealType} onChange={(event) => setMealType(event.target.value as MealRecord['mealType'])}><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select><label htmlFor="food-search">Choose food</label><div className="catalog-search"><Search size={16} /><input id="food-search" value={foodQuery} onChange={(event) => { setFoodQuery(event.target.value); setSelectedFood(null) }} placeholder="Search foods" autoComplete="off" /></div><div className="food-results">{foodCatalog.filter((food) => `${food.name} ${food.category}`.toLowerCase().includes(foodQuery.toLowerCase())).slice(0, 10).map((food) => <button type="button" key={food.name} className={selectedFood?.name === food.name ? 'selected' : ''} onClick={() => { setSelectedFood(food); setFoodQuery(food.name) }}><span><strong>{food.name}</strong><small>{food.serving} · {food.calories} kcal · {food.category}</small></span><Plus size={14} /></button>)}</div>{selectedFood && <div className="selected-food"><div><strong>{selectedFood.name}</strong><span>{selectedFood.serving} · {selectedFood.calories} kcal · P {selectedFood.proteinGrams}g / C {selectedFood.carbsGrams}g / F {selectedFood.fatGrams}g</span></div><label>Servings<input type="number" min={0.25} max={20} step={0.25} value={servings} onChange={(event) => setServings(Number(event.target.value))} /></label></div>}</>}
-      <div className="modal-actions"><button className="button button-quiet" type="button" onClick={() => setModal(null)}>Cancel</button><button className="button button-primary" type="submit"><Plus size={16} /> Save {modal === 'workout' ? 'workout' : 'meal'}</button></div></form></div>}
+      <div className="modal-actions"><button className="button button-quiet" type="button" onClick={() => setModal(null)}>Cancel</button><button className="button button-primary" type="submit" disabled={modal === 'meal' && !selectedFood}><Plus size={16} /> Save {modal === 'workout' ? 'workout' : 'meal'}</button></div></form></div>}
   </div>
 }
 
