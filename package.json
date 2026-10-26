@@ -10,7 +10,7 @@
     "build": "tsc -b && npm run build:server && vite build",
     "build:server": "tsc -p server/tsconfig.json",
     "start:server": "node server/dist/index.js",
-    "test": "node --import tsx --test server/test/health.test.ts",
+    "test": "node --import tsx --test server/test/food-catalog.test.ts server/test/health.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -38,3 +38,4 @@
     "vite": "^6.0.5"
   }
 }
+
