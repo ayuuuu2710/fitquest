@@ -2,6 +2,7 @@ import { model, Schema, type InferSchemaType } from 'mongoose'
 
 const mealLogSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  foodId: { type: String, trim: true, maxlength: 80 },
   foodName: { type: String, required: true, trim: true, maxlength: 100 },
   mealType: { type: String, enum: ['Breakfast', 'Lunch', 'Dinner', 'Snack'], required: true },
   servings: { type: Number, required: true, min: 0.25, max: 20 },
@@ -10,6 +11,7 @@ const mealLogSchema = new Schema({
   proteinGrams: { type: Number, required: true, min: 0, max: 1000 },
   carbsGrams: { type: Number, required: true, min: 0, max: 1000 },
   fatGrams: { type: Number, required: true, min: 0, max: 1000 },
+  nutritionSource: { type: String, enum: ['starter-estimate'] },
   date: { type: Date, required: true, index: true },
 }, { timestamps: true })
 
