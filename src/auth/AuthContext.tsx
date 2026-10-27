@@ -2,9 +2,13 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { ApiError, apiRequest, initializeApi } from '../lib/api'
 
 export type UserProfile = {
+  age: number | null; sexForCalculation: 'female' | 'male' | null; heightCm: number | null; weightKg: number | null
   goals: string[]; experience: 'beginner' | 'intermediate' | 'advanced' | null
-  availableEquipment: string[]; workoutDaysPerWeek: number | null; minutesPerSession: number | null
-  dietaryPreferences: string[]; units: 'metric' | 'imperial'; timezone: string; theme: 'dark' | 'light' | 'system'
+  targetWeightKg: number | null; desiredWeeklyChangeKg: number | null
+  availableEquipment: string[]; preferredWorkoutDays: number[]; preferredWorkoutTypes: string[]
+  workoutDaysPerWeek: number | null; minutesPerSession: number | null; trainingIntensity: 'low' | 'moderate' | 'high'
+  dietaryPreferences: string[]; allergies: string[]; foodRestrictions: string[]
+  units: 'metric' | 'imperial'; timezone: string; theme: 'dark' | 'light' | 'system'
 }
 export type AuthUser = { id: string; email: string; emailVerified: boolean; displayName: string; onboardingComplete: boolean; profile: UserProfile }
 export type ProfileInput = Omit<UserProfile, 'experience' | 'workoutDaysPerWeek' | 'minutesPerSession'> & {
@@ -13,7 +17,7 @@ export type ProfileInput = Omit<UserProfile, 'experience' | 'workoutDaysPerWeek'
 type AuthStatus = 'loading' | 'signed-out' | 'signed-in' | 'unavailable'
 type AuthContextValue = {
   status: AuthStatus; user: AuthUser | null; error: string; retry: () => Promise<void>
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string, rememberMe: boolean) => Promise<void>
   register: (email: string, password: string, displayName: string) => Promise<void>
   verifyEmail: (token: string) => Promise<string>
   requestPasswordReset: (email: string) => Promise<string>
@@ -42,8 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
   useEffect(() => { void retry() }, [])
 
-  const signIn: AuthContextValue['signIn'] = async (email, password) => {
-    const result = await apiRequest<{ user: AuthUser }>('/api/v1/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
+  const signIn: AuthContextValue['signIn'] = async (email, password, rememberMe) => {
+    const result = await apiRequest<{ user: AuthUser }>('/api/v1/auth/login', { method: 'POST', body: JSON.stringify({ email, password, rememberMe }) })
     setUser(result.user); setStatus('signed-in'); setError('')
   }
   const register: AuthContextValue['register'] = async (email, password, displayName) => {

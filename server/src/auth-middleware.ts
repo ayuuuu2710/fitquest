@@ -77,13 +77,13 @@ export const requireAuth: RequestHandler = async (request, response, next) => {
   }
 }
 
-export function setSessionCookie(response: Parameters<RequestHandler>[1], token: string) {
+export function setSessionCookie(response: Parameters<RequestHandler>[1], token: string, maxAgeMs = config.sessionTtlDays * 24 * 60 * 60 * 1000) {
   response.cookie(sessionCookieName, token, {
     httpOnly: true,
     secure: config.nodeEnv === 'production',
     sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
     path: '/',
-    maxAge: config.sessionTtlDays * 24 * 60 * 60 * 1000,
+    maxAge: maxAgeMs,
   })
 }
 

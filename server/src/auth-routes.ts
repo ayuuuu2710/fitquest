@@ -9,24 +9,35 @@ import { OneTimeToken } from './models/one-time-token.js'
 import { Session } from './models/session.js'
 import { User } from './models/user.js'
 import { createOpaqueToken, hashOpaqueToken, hashPassword, safeEqual, verifyPassword } from './security.js'
+import { strongPasswordSchema } from './auth-validation.js'
 
-const passwordSchema = z.string().min(12).max(128)
 const registrationSchema = z.object({
   email: z.string().trim().email().max(254),
-  password: passwordSchema,
+  password: strongPasswordSchema,
   displayName: z.string().trim().min(1).max(60),
 }).strict()
-const loginSchema = z.object({ email: z.string().trim().email().max(254), password: z.string().min(1).max(128) }).strict()
+const loginSchema = z.object({ email: z.string().trim().email().max(254), password: z.string().min(1).max(128), rememberMe: z.boolean().default(false) }).strict()
 const tokenSchema = z.object({ token: z.string().min(32).max(200) }).strict()
-const resetSchema = tokenSchema.extend({ password: passwordSchema }).strict()
+const resetSchema = tokenSchema.extend({ password: strongPasswordSchema }).strict()
 const profileSchema = z.object({
   displayName: z.string().trim().min(1).max(60),
+  age: z.number().int().min(13).max(120).nullable(),
+  sexForCalculation: z.enum(['female', 'male']).nullable(),
+  heightCm: z.number().min(100).max(250).nullable(),
+  weightKg: z.number().min(25).max(400).nullable(),
   goals: z.array(z.string().trim().min(1).max(80)).max(8),
+  targetWeightKg: z.number().min(25).max(400).nullable(),
+  desiredWeeklyChangeKg: z.number().min(-1.5).max(1.5).nullable(),
   experience: z.enum(['beginner', 'intermediate', 'advanced']),
   availableEquipment: z.array(z.string().trim().min(1).max(60)).max(20),
+  preferredWorkoutDays: z.array(z.number().int().min(0).max(6)).max(7),
+  preferredWorkoutTypes: z.array(z.enum(['strength', 'cardio', 'yoga', 'mobility', 'sports', 'mixed', 'other'])).max(7),
   workoutDaysPerWeek: z.number().int().min(1).max(7),
   minutesPerSession: z.number().int().min(10).max(240),
+  trainingIntensity: z.enum(['low', 'moderate', 'high']),
   dietaryPreferences: z.array(z.string().trim().min(1).max(80)).max(12),
+  allergies: z.array(z.string().trim().min(1).max(80)).max(20),
+  foodRestrictions: z.array(z.string().trim().min(1).max(80)).max(20),
   units: z.enum(['metric', 'imperial']),
   timezone: z.string().trim().min(1).max(64),
   theme: z.enum(['dark', 'light', 'system']),
@@ -103,6 +114,10 @@ export function createAuthRouter() {
     response.status(200).json({ csrfToken: token })
   })
 
+  router.get('/recovery-status', (_request, response) => {
+    response.status(200).json({ available: Boolean(config.resendApiKey && config.emailFrom) })
+  })
+
   router.post('/register', authLimit, asyncRoute(async (request, response) => {
     const parsed = registrationSchema.safeParse(request.body)
     if (!parsed.success) return validationError(response)
@@ -172,9 +187,12 @@ export function createAuthRouter() {
     }
 
     const token = createOpaqueToken()
-    const expiresAt = new Date(Date.now() + config.sessionTtlDays * 24 * 60 * 60 * 1000)
+    const sessionDurationMs = parsed.data.rememberMe
+      ? config.sessionTtlDays * 24 * 60 * 60 * 1000
+      : 8 * 60 * 60 * 1000
+    const expiresAt = new Date(Date.now() + sessionDurationMs)
     await Session.create({ userId: user._id, tokenHash: token.hash, expiresAt })
-    setSessionCookie(response, token.value)
+    setSessionCookie(response, token.value, sessionDurationMs)
     response.status(200).json({ user: publicUser(user) })
   }))
 
@@ -191,10 +209,13 @@ export function createAuthRouter() {
   router.post('/forgot-password', recoveryLimit, asyncRoute(async (request, response) => {
     const parsed = z.object({ email: z.string().trim().email().max(254) }).strict().safeParse(request.body)
     if (!parsed.success) return validationError(response)
+    if (!config.resendApiKey || !config.emailFrom) {
+      return response.status(503).json({ error: { code: 'RECOVERY_UNAVAILABLE', message: 'Password recovery is temporarily unavailable because email delivery is not configured.' } })
+    }
     if (mongoose.connection.readyState !== 1) return databaseUnavailable(response)
 
     const user = await User.findOne({ email: parsed.data.email.toLowerCase(), emailVerified: true })
-    if (user && config.resendApiKey && config.emailFrom) {
+    if (user) {
       const token = await issueOneTimeToken(user._id, 'password-reset', 1)
       await sendTransactionalEmail(passwordResetEmail(user.email, token.value, token.eventId))
     }
@@ -237,7 +258,10 @@ export function createAuthRouter() {
     const parsed = profileSchema.safeParse(request.body)
     if (!parsed.success) return validationError(response)
     const profile = parsed.data
-    const complete = profile.goals.length > 0 && profile.availableEquipment.length > 0
+    const existing = await User.findById(request.authUser?.id).select('onboardingComplete').lean()
+    const hasWizardRequirements = profile.age !== null && profile.heightCm !== null && profile.weightKg !== null
+      && profile.goals.length > 0 && profile.availableEquipment.length > 0 && profile.preferredWorkoutDays.length > 0
+    const complete = Boolean(existing?.onboardingComplete || hasWizardRequirements)
     const user = await User.findByIdAndUpdate(request.authUser?.id, {
       $set: { displayName: profile.displayName, profile, onboardingComplete: complete },
     }, { new: true, runValidators: true }).select('email emailVerified displayName onboardingComplete profile').lean()

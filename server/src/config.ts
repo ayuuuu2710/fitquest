@@ -10,6 +10,7 @@ const environmentSchema = z.object({
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   RESEND_API_KEY: z.preprocess((value) => value === '' ? undefined : value, z.string().min(1).optional()),
   EMAIL_FROM: z.preprocess((value) => value === '' ? undefined : value, z.string().min(3).optional()),
+  USDA_API_KEY: z.preprocess((value) => value === '' ? undefined : value, z.string().min(1).optional()),
 }).superRefine((environment, context) => {
   if (environment.NODE_ENV === 'production' && !environment.MONGODB_URI) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: 'MONGODB_URI is required in production.', path: ['MONGODB_URI'] })
@@ -35,4 +36,5 @@ export const config = {
   sessionTtlDays: parsedEnvironment.data.SESSION_TTL_DAYS,
   resendApiKey: parsedEnvironment.data.RESEND_API_KEY,
   emailFrom: parsedEnvironment.data.EMAIL_FROM,
+  usdaApiKey: parsedEnvironment.data.USDA_API_KEY,
 }
